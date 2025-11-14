@@ -15,6 +15,9 @@ import {
   ClockIcon,
 } from "lucide-react";
 
+// Replace this with your Render backend URL
+const API_URL = "https://healthappbackend-my3d.onrender.com";
+
 interface Patient {
   _id: string;
   name: string;
@@ -39,7 +42,6 @@ interface PatientNote {
   status: "draft" | "completed";
 }
 
-// ✅ Typed list of editable text fields
 type NoteField =
   | "chiefComplaint"
   | "subjective"
@@ -68,21 +70,21 @@ export default function Notes() {
     status: "draft",
   });
 
-  // ✅ Fetch Patients
+  /* ------------------------- FETCH PATIENTS ------------------------- */
   useEffect(() => {
-    fetch("http://localhost:5000/patients")
+    fetch(`${API_URL}/patients`)
       .then((res) => res.json())
       .then((data) => setPatients(data))
-      .catch((err) => console.log("Patients Fetch Error:", err))
+      .catch((err) => console.error("Patients Fetch Error:", err))
       .finally(() => setLoading(false));
   }, []);
 
-  // ✅ Fetch Notes
+  /* ------------------------- FETCH NOTES ------------------------- */
   useEffect(() => {
-    fetch("http://localhost:5000/notes")
+    fetch(`${API_URL}/notes`)
       .then((res) => res.json())
       .then((data) => setNotes(data))
-      .catch((err) => console.log("Notes Fetch Error:", err));
+      .catch((err) => console.error("Notes Fetch Error:", err));
   }, []);
 
   const formatDate = (date: string) =>
@@ -92,7 +94,7 @@ export default function Notes() {
     (n.patientName + n.chiefComplaint).toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // ✅ Save Note
+  /* ------------------------- SAVE NOTE ------------------------- */
   const handleSaveNote = async () => {
     setSaving(true);
     const payload = {
@@ -103,7 +105,7 @@ export default function Notes() {
 
     try {
       if (isEditing && selectedNote) {
-        await fetch(`http://localhost:5000/notes/${selectedNote._id}`, {
+        await fetch(`${API_URL}/notes/${selectedNote._id}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
@@ -115,11 +117,12 @@ export default function Notes() {
           )
         );
       } else {
-        const res = await fetch("http://localhost:5000/notes", {
+        const res = await fetch(`${API_URL}/notes`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
         });
+
         const created = await res.json();
         setNotes([created, ...notes]);
       }
@@ -182,33 +185,31 @@ export default function Notes() {
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-7xl mx-auto space-y-6">
 
-        {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Clinical Notes</h1>
             <p className="text-gray-600 mt-1">Document and manage patient encounters</p>
           </div>
+
           <Button onClick={handleCreateNew} className="flex items-center gap-2">
             <PlusIcon className="w-4 h-4" />
             New Note
           </Button>
         </div>
 
-        {/* Search */}
         <Card className="p-4">
           <div className="relative">
             <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
             <input
               type="text"
               placeholder="Search notes by patient or complaint..."
-              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
         </Card>
 
-        {/* Notes List */}
         <Card className="overflow-hidden">
           {filteredNotes.length === 0 ? (
             <div className="text-center py-12">
@@ -218,12 +219,14 @@ export default function Notes() {
           ) : (
             <div className="divide-y divide-gray-200">
               {filteredNotes.map((note) => (
-                <div key={note._id} className="p-6 hover:bg-gray-50 transition-colors">
+                <div key={note._id} className="p-6 hover:bg-gray-50">
+
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-2">
                         <UserIcon className="w-5 h-5 text-gray-500" />
                         <h3 className="font-semibold text-gray-900">{note.patientName}</h3>
+
                         <Badge
                           variant={note.status === "completed" ? "success" : "warning"}
                         >
@@ -240,7 +243,9 @@ export default function Notes() {
                           )}
                         </Badge>
                       </div>
+
                       <p className="text-gray-700 mb-2">{note.chiefComplaint}</p>
+
                       <div className="flex items-center gap-4 text-sm text-gray-500">
                         <div className="flex items-center gap-1">
                           <CalendarIcon className="w-4 h-4" />
@@ -251,6 +256,7 @@ export default function Notes() {
                         )}
                       </div>
                     </div>
+
                     <div className="flex gap-2">
                       <Button
                         variant="secondary"
@@ -261,6 +267,7 @@ export default function Notes() {
                         <EyeIcon className="w-4 h-4" />
                         View
                       </Button>
+
                       <Button
                         variant="secondary"
                         size="sm"
@@ -272,17 +279,18 @@ export default function Notes() {
                       </Button>
                     </div>
                   </div>
+
                 </div>
               ))}
             </div>
           )}
         </Card>
 
-        {/* Modal */}
         {(selectedNote || isEditing) && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
             <Card className="w-full max-w-4xl max-h-[90vh] overflow-y-auto">
               <div className="p-6">
+
                 <div className="flex justify-between items-center mb-6">
                   <h2 className="text-xl font-semibold text-gray-900">
                     {isEditing ? "Edit Note" : "View Note"}
@@ -293,18 +301,30 @@ export default function Notes() {
                 </div>
 
                 {isEditing ? (
-                  <form onSubmit={(e) => { e.preventDefault(); handleSaveNote(); }} className="space-y-6">
+                  <form
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      handleSaveNote();
+                    }}
+                    className="space-y-6"
+                  >
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Patient</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Patient
+                      </label>
                       <select
-                        className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="w-full border border-gray-300 rounded-lg px-3 py-2"
                         value={newNote.patientId}
-                        onChange={(e) => setNewNote({ ...newNote, patientId: e.target.value })}
+                        onChange={(e) =>
+                          setNewNote({ ...newNote, patientId: e.target.value })
+                        }
                         required
                       >
                         <option value="">Select patient...</option>
                         {patients.map((p) => (
-                          <option key={p._id} value={p._id}>{p.name}</option>
+                          <option key={p._id} value={p._id}>
+                            {p.name}
+                          </option>
                         ))}
                       </select>
                     </div>
@@ -312,13 +332,15 @@ export default function Notes() {
                     {(["chiefComplaint", "subjective", "objective", "assessment", "plan"] as NoteField[]).map((field) => (
                       <div key={field}>
                         <label className="block text-sm font-medium text-gray-700 mb-2 capitalize">
-                          {field.replace(/([A-Z])/g, ' $1').trim()}
+                          {field.replace(/([A-Z])/g, " $1").trim()}
                         </label>
                         <textarea
-                          className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-vertical"
+                          className="w-full border border-gray-300 rounded-lg px-3 py-2 resize-vertical"
                           rows={field === "chiefComplaint" ? 2 : 4}
                           value={newNote[field] ?? ""}
-                          onChange={(e) => setNewNote({ ...newNote, [field]: e.target.value })}
+                          onChange={(e) =>
+                            setNewNote({ ...newNote, [field]: e.target.value })
+                          }
                           required={field === "chiefComplaint"}
                         />
                       </div>
@@ -328,7 +350,12 @@ export default function Notes() {
                       <Button type="submit" disabled={saving} className="flex-1">
                         {saving ? "Saving..." : "Save Note"}
                       </Button>
-                      <Button type="button" variant="secondary" onClick={closeModal}>
+
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        onClick={closeModal}
+                      >
                         Cancel
                       </Button>
                     </div>
@@ -339,10 +366,21 @@ export default function Notes() {
                       <div className="flex items-center gap-4 pb-4 border-b">
                         <UserIcon className="w-6 h-6 text-gray-500" />
                         <div>
-                          <h3 className="font-semibold text-gray-900">{selectedNote.patientName}</h3>
-                          <p className="text-sm text-gray-500">{formatDate(selectedNote.date)}</p>
+                          <h3 className="font-semibold text-gray-900">
+                            {selectedNote.patientName}
+                          </h3>
+                          <p className="text-sm text-gray-500">
+                            {formatDate(selectedNote.date)}
+                          </p>
                         </div>
-                        <Badge variant={selectedNote.status === "completed" ? "success" : "warning"}>
+
+                        <Badge
+                          variant={
+                            selectedNote.status === "completed"
+                              ? "success"
+                              : "warning"
+                          }
+                        >
                           {selectedNote.status}
                         </Badge>
                       </div>
@@ -350,7 +388,7 @@ export default function Notes() {
                       {(["chiefComplaint", "subjective", "objective", "assessment", "plan"] as NoteField[]).map((field) => (
                         <div key={field}>
                           <h4 className="font-medium text-gray-900 mb-2 capitalize">
-                            {field.replace(/([A-Z])/g, ' $1').trim()}
+                            {field.replace(/([A-Z])/g, " $1").trim()}
                           </h4>
                           <div className="bg-gray-50 p-4 rounded-lg">
                             <p className="text-gray-700 whitespace-pre-wrap">
@@ -362,10 +400,12 @@ export default function Notes() {
                     </div>
                   )
                 )}
+
               </div>
             </Card>
           </div>
         )}
+
       </div>
     </div>
   );
