@@ -1,6 +1,6 @@
 import { User, Patient, Doctor, Appointment, Prescription, DoctorStatus, AppointmentStatus } from '../types';
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+const API_URL = import.meta.env.VITE_API_URL || "https://healthappbackend-my3d.onrender.com";
 
 async function request(endpoint: string, method = "GET", body?: any) {
   const options: RequestInit = {
