@@ -17,6 +17,21 @@ import {
   SparklesIcon,
 } from "lucide-react";
 
+/* -------------------------------------------
+   SAFARI FIX — SAFE LOCAL STORAGE WRAPPER
+------------------------------------------- */
+function safeStorage() {
+  try {
+    return window.localStorage;
+  } catch {
+    return {
+      getItem: () => null,
+      setItem: () => {},
+      removeItem: () => {}
+    };
+  }
+}
+
 export function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -30,11 +45,13 @@ export function Login() {
   const { login } = useAuth();
 
   useEffect(() => {
-    // Animate form in on mount
     const timer = setTimeout(() => setIsFormVisible(true), 100);
     return () => clearTimeout(timer);
   }, []);
 
+  /* -------------------------------------------
+     LOGIN HANDLER (FULLY PATCHED FOR SAFARI)
+  ------------------------------------------- */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
@@ -47,7 +64,6 @@ export function Login() {
       return;
     }
 
-    // Basic email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       setError("Please enter a valid email address");
@@ -59,18 +75,26 @@ export function Login() {
     setLoading(false);
 
     if (success) {
-      const user = JSON.parse(localStorage.getItem("health_app_current_user") || "null");
-      if (!user) {
-        setError("Login failed, please try again.");
+      // ⭐ Safari requires a delay for localStorage writes
+      await new Promise(res => setTimeout(res, 150));
+
+      const savedUser = safeStorage().getItem("health_app_current_user");
+
+      if (!savedUser) {
+        setError("Login failed. Please try again.");
         return;
       }
 
+      const user = JSON.parse(savedUser);
+
       setSuccessMessage("Login successful! Redirecting...");
+
       setTimeout(() => {
         if (user.role === "patient") navigate("/patient/dashboard");
         else if (user.role === "doctor") navigate("/doctor/dashboard");
         else if (user.role === "admin") navigate("/admin/dashboard");
-      }, 1500);
+      }, 1200);
+
     } else {
       setError("Invalid email or password");
     }
@@ -78,25 +102,17 @@ export function Login() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-100 via-blue-50 to-purple-100 flex items-center justify-center p-4 relative overflow-hidden">
-      {/* Enhanced Background Pattern */}
+
+      {/* Background */}
       <div className="absolute inset-0 opacity-10">
         <div className="absolute top-10 left-10 w-32 h-32 bg-blue-300 rounded-full blur-xl animate-pulse"></div>
         <div className="absolute bottom-10 right-10 w-40 h-40 bg-purple-300 rounded-full blur-xl animate-pulse delay-1000"></div>
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-indigo-200 rounded-full blur-2xl animate-pulse delay-500"></div>
-        <div className="absolute top-20 right-20 w-24 h-24 bg-pink-200 rounded-full blur-lg animate-bounce"></div>
-        <div className="absolute bottom-20 left-20 w-20 h-20 bg-green-200 rounded-full blur-lg animate-bounce delay-700"></div>
-      </div>
-
-      {/* Floating Icons */}
-      <div className="absolute inset-0 pointer-events-none">
-        <HeartIcon className="absolute top-20 left-20 w-6 h-6 text-blue-300 opacity-20 animate-bounce" />
-        <ShieldCheckIcon className="absolute bottom-32 right-32 w-5 h-5 text-purple-300 opacity-20 animate-bounce delay-300" />
-        <SparklesIcon className="absolute top-1/3 right-10 w-4 h-4 text-indigo-300 opacity-20 animate-spin" />
       </div>
 
       <div className={`bg-white/95 backdrop-blur-xl rounded-3xl shadow-2xl p-8 w-full max-w-md relative z-10 border border-white/30 transition-all duration-700 transform ${
         isFormVisible ? 'translate-y-0 opacity-100 scale-100' : 'translate-y-8 opacity-0 scale-95'
       }`}>
+
         {/* Header */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 rounded-full mb-4 shadow-xl animate-pulse">
@@ -116,55 +132,50 @@ export function Login() {
           </div>
         )}
 
+        {/* Error */}
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-xl text-sm flex items-center gap-2 animate-fade-in">
+            <AlertCircleIcon className="w-5 h-5 flex-shrink-0" />
+            {error}
+          </div>
+        )}
+
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-6">
-          {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-xl text-sm flex items-center gap-2 animate-fade-in">
-              <AlertCircleIcon className="w-5 h-5 flex-shrink-0" />
-              {error}
-            </div>
-          )}
 
-          {/* Email Input */}
+          {/* Email */}
           <div className="relative group">
-            <label className="block text-sm font-medium text-gray-700 mb-2 transition-colors group-focus-within:text-blue-600">
-              Email Address
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Email Address</label>
             <div className="relative">
-              <MailIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-blue-500 transition-colors" />
+              <MailIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
               <input
                 type="email"
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 bg-gray-50 hover:bg-white group-hover:shadow-md"
+                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@example.com"
                 required
-                disabled={loading}
               />
             </div>
           </div>
 
-          {/* Password Input */}
+          {/* Password */}
           <div className="relative group">
-            <label className="block text-sm font-medium text-gray-700 mb-2 transition-colors group-focus-within:text-blue-600">
-              Password
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Password</label>
             <div className="relative">
-              <LockIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-blue-500 transition-colors" />
+              <LockIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
               <input
                 type={showPassword ? "text" : "password"}
-                className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 bg-gray-50 hover:bg-white group-hover:shadow-md"
+                className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
                 required
-                disabled={loading}
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors disabled:opacity-50"
-                disabled={loading}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
               >
                 {showPassword ? <EyeOffIcon className="w-5 h-5" /> : <EyeIcon className="w-5 h-5" />}
               </button>
@@ -173,10 +184,7 @@ export function Login() {
 
           {/* Forgot Password */}
           <div className="text-right">
-            <Link
-              to="/forgot-password"
-              className="text-sm text-blue-600 hover:text-blue-800 transition-colors hover:underline"
-            >
+            <Link to="/forgot-password" className="text-sm text-blue-600 hover:text-blue-800">
               Forgot your password?
             </Link>
           </div>
@@ -186,7 +194,7 @@ export function Login() {
             type="submit"
             fullWidth
             disabled={loading}
-            className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 hover:from-blue-700 hover:via-purple-700 hover:to-pink-700 text-white font-semibold py-3 rounded-xl transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none shadow-lg hover:shadow-xl"
+            className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 text-white py-3 rounded-xl"
           >
             {loading ? (
               <div className="flex items-center justify-center gap-2">
@@ -202,52 +210,36 @@ export function Login() {
           </Button>
         </form>
 
-        {/* Divider */}
-        <div className="mt-8 mb-6">
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-300" />
-            </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="px-4 bg-white text-gray-500 font-medium">New to MobileHealth?</span>
-            </div>
-          </div>
-        </div>
+        {/* Registration */}
+        <div className="mt-8">
+          <div className="text-center text-sm text-gray-500 mb-4">New to MobileHealth?</div>
 
-        {/* Registration Links */}
-        <div className="space-y-3">
           <Link to="/register">
-            <button
-              className="w-full flex items-center justify-center gap-2 py-3 border-2 border-blue-200 text-blue-700 hover:bg-blue-50 hover:border-blue-300 transition-all duration-300 rounded-xl font-medium hover:shadow-md disabled:opacity-50"
-              disabled={loading}
-            >
-              <UserIcon className="w-4 h-4" />
+            <button className="w-full py-3 border-2 border-blue-200 rounded-xl text-blue-700">
+              <UserIcon className="w-4 h-4 inline-block mr-2" />
               Register as Patient
             </button>
           </Link>
 
-          <Link to="/doctor/register">
-            <button
-              className="w-full flex items-center justify-center gap-2 py-3 border-2 border-green-200 text-green-700 hover:bg-green-50 hover:border-green-300 transition-all duration-300 rounded-xl font-medium hover:shadow-md disabled:opacity-50"
-              disabled={loading}
-            >
-              <StethoscopeIcon className="w-4 h-4" />
-              Register as Doctor
-            </button>
-          </Link>
+          <div className="mt-3">
+            <Link to="/doctor/register">
+              <button className="w-full py-3 border-2 border-green-200 rounded-xl text-green-700">
+                <StethoscopeIcon className="w-4 h-4 inline-block mr-2" />
+                Register as Doctor
+              </button>
+            </Link>
+          </div>
         </div>
 
-        {/* Demo Accounts */}
-        <div className="mt-8 p-4 bg-gradient-to-r from-blue-50 via-purple-50 to-pink-50 rounded-xl border border-blue-100 shadow-inner">
-          <div className="flex items-center gap-2 mb-3">
+        {/* Admin Demo */}
+        <div className="mt-8 p-4 bg-blue-50 rounded-xl border border-blue-100">
+          <div className="flex items-center gap-2 mb-2">
             <ShieldCheckIcon className="w-4 h-4 text-blue-600" />
-            <p className="font-semibold text-blue-800 text-sm">Admin Login's</p>
+            <p className="font-semibold text-blue-800 text-sm">Admin Login</p>
           </div>
-          <div className="text-xs text-gray-600 space-y-1">
-            <p><strong>Admin:</strong> admin@health.com / admin000</p>
-            
-            
-          </div>
+          <p className="text-xs text-gray-600">
+            <strong>Admin:</strong> admin@health.com / admin000
+          </p>
         </div>
       </div>
     </div>
