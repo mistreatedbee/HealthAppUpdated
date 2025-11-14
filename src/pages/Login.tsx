@@ -231,16 +231,7 @@ export function Login() {
           </div>
         </div>
 
-        {/* Admin Demo */}
-        <div className="mt-8 p-4 bg-blue-50 rounded-xl border border-blue-100">
-          <div className="flex items-center gap-2 mb-2">
-            <ShieldCheckIcon className="w-4 h-4 text-blue-600" />
-            <p className="font-semibold text-blue-800 text-sm">Admin Login</p>
-          </div>
-          <p className="text-xs text-gray-600">
-            <strong>Admin:</strong> admin@health.com / admin000
-          </p>
-        </div>
+        
       </div>
     </div>
   );
