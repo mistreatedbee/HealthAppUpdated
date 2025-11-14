@@ -244,7 +244,7 @@ export function Login() {
             <p className="font-semibold text-blue-800 text-sm">Admin Login's</p>
           </div>
           <div className="text-xs text-gray-600 space-y-1">
-            <p><strong>Admin:</strong> admin@health.com / admin123</p>
+            <p><strong>Admin:</strong> admin@health.com / admin000</p>
             
             
           </div>
